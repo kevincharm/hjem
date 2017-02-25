@@ -247,9 +247,12 @@ class RpcServer extends EventEmitter {
 
     registerMethods(methods = {}) {
         const validatedMethods = Object.assign({}, methods)
-        Object.keys(validatedMethods).forEach(k => {
-            if (typeof validatedMethods[k] !== 'function') {
-                delete validatedMethods[k]
+        Object.keys(validatedMethods).forEach(m => {
+            if (typeof m !== 'string' ||
+                m.match(/^rpc\./i) ||
+                typeof validatedMethods[m] !== 'function') {
+                this.emit('error', new Error(`Invalid method '${m}'`))
+                delete validatedMethods[m]
             }
         })
 
