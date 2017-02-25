@@ -28,7 +28,20 @@ class RpcServer extends EventEmitter {
             this._connections.push(ws)
 
             ws.on('message', msg => {
-                this._handleMessage(ws, msg)
+                try {
+                    const request = JSON.parse(msg)
+                    if (typeof request === 'object') {
+                        // Single request
+                        this._handleMessage(ws, request)
+                    } else if (Array.isArray(request)) {
+                        // Support batching
+                        request.forEach(r => {
+                            if (typeof r === 'object') this._handleMessage(ws, r)
+                        })
+                    }
+                } catch (e) {
+                    this.emit('error', new Error(`Invalid message: ${msg}`))
+                }
             })
 
             ws.on('close', () => {
