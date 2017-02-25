@@ -71,15 +71,15 @@ export default class WebSocketConnection {
         if (typeof cb === 'function') this.onMessageHandlers.push(cb)
     }
 
-    send(...args) {
+    send(data) {
         if (!this.ws) return this.triggerErrorHandlers({ message: 'WebSocket not ready!' })
 
         if (this.ws.readyState) {
-            return this.ws.send(...args)
+            return this.ws.send(data)
         }
 
         return setTimeout(() => {
-            this.send(...args)
+            this.send(data)
         }, 10)
     }
 }
