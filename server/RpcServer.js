@@ -166,9 +166,14 @@ class RpcServer extends EventEmitter {
         }
     }
 
-    _handleMessage(ws, msg) {
-        const request = JSON.parse(msg)
-        const { id, method, params } = request
+    _handleMessage(ws, request) {
+        const { id, method, params, jsonrpc } = request
+
+        // Validate header
+        if (!jsonrpc || jsonrpc !== JSON_RPC_HEADER.jsonrpc) {
+            this.emit('error', new Error('Skipping non-jsonrpc message'))
+            return
+        }
 
         // Validate method name
         if (!method || typeof method !== 'string') {
