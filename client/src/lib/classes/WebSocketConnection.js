@@ -6,11 +6,11 @@
  */
 export default class WebSocketConnection {
     constructor(address) {
-        this.address = address
-        this.onErrorHandlers = []
-        this.onOpenHandlers = []
-        this.onCloseHandlers = []
-        this.onMessageHandlers = []
+        this._address = address
+        this._onErrorHandlers = []
+        this._onOpenHandlers = []
+        this._onCloseHandlers = []
+        this._onMessageHandlers = []
 
         if (window.WebSocket) {
             this.connect()
@@ -26,12 +26,12 @@ export default class WebSocketConnection {
 
     connect() {
         try {
-            this.ws = null
-            this.ws = new window.WebSocket(this.address)
-            this.ws.onerror = (...args) => this.triggerErrorHandlers(...args)
-            this.ws.onopen = (...args) => this.triggerOpenHandlers(...args)
-            this.ws.onclose = (...args) => this.triggerCloseHandlers(...args)
-            this.ws.onmessage = (...args) => this.triggerMessageHandlers(...args)
+            this._ws = null
+            this._ws = new window.WebSocket(this._address)
+            this._ws.onerror = (...args) => this.triggerErrorHandlers(...args)
+            this._ws.onopen = (...args) => this.triggerOpenHandlers(...args)
+            this._ws.onclose = (...args) => this.triggerCloseHandlers(...args)
+            this._ws.onmessage = (...args) => this.triggerMessageHandlers(...args)
         } catch (e) {
             console.log(e)
             this.triggerErrorHandlers({ message: 'Could not create a WebSocket instance!' })
@@ -39,43 +39,43 @@ export default class WebSocketConnection {
     }
 
     triggerErrorHandlers(...args) {
-        this.onErrorHandlers.forEach(h => h(...args))
+        this._onErrorHandlers.forEach(h => h(...args))
     }
 
     onError(cb) {
-        if (typeof cb === 'function') this.onErrorHandlers.push(cb)
+        if (typeof cb === 'function') this._onErrorHandlers.push(cb)
     }
 
     triggerOpenHandlers(...args) {
-        this.onOpenHandlers.forEach(h => h(...args))
+        this._onOpenHandlers.forEach(h => h(...args))
     }
 
     onOpen(cb) {
-        if (typeof cb === 'function') this.onOpenHandlers.push(cb)
+        if (typeof cb === 'function') this._onOpenHandlers.push(cb)
     }
 
     triggerCloseHandlers(...args) {
-        this.onCloseHandlers.forEach(h => h(...args))
+        this._onCloseHandlers.forEach(h => h(...args))
         setTimeout(() => this.connect(), 5000)
     }
 
     onClose(cb) {
-        if (typeof cb === 'function') this.onCloseHandlers.push(cb)
+        if (typeof cb === 'function') this._onCloseHandlers.push(cb)
     }
 
     triggerMessageHandlers(...args) {
-        this.onMessageHandlers.forEach(h => h(...args))
+        this._onMessageHandlers.forEach(h => h(...args))
     }
 
     onMessage(cb) {
-        if (typeof cb === 'function') this.onMessageHandlers.push(cb)
+        if (typeof cb === 'function') this._onMessageHandlers.push(cb)
     }
 
     send(data) {
-        if (!this.ws) return this.triggerErrorHandlers({ message: 'WebSocket not ready!' })
+        if (!this._ws) return this.triggerErrorHandlers({ message: 'WebSocket not ready!' })
 
-        if (this.ws.readyState) {
-            return this.ws.send(data)
+        if (this._ws.readyState) {
+            return this._ws.send(data)
         }
 
         return setTimeout(() => {
