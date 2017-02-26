@@ -5,6 +5,7 @@ import {
 } from './actions'
 
 const defaultAuthState = {
+    isRehydrated: false,
     isAuthenticating: false,
     username: null,
     sessionToken: null
@@ -18,6 +19,10 @@ export default function authReducer(state = defaultAuthState, action) {
     } = payload
 
     switch (action.type) {
+        case 'persist/REHYDRATE':
+            return Object.assign({}, state, {
+                isRehydrated: true
+            })
         case REQUEST_AUTHENTICATION:
             return Object.assign({}, state, {
                 isAuthenticating: true,

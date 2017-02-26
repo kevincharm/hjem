@@ -22,9 +22,11 @@ class RpcServer extends EventEmitter {
         this._methods = {}
         this._connections = []
         this._activeRpcTable = []
+        this._authStrategy = null
 
         this._wss.on('connection', ws => {
             ws._id = uuid.v4()
+            ws._user = null
             this._connections.push(ws)
 
             ws.on('message', msg => {
@@ -55,6 +57,7 @@ class RpcServer extends EventEmitter {
     _handleClose(ws) {
         this._connections = this._connections.filter(c => c._id !== ws._id)
         this._activeRpcTable = this._activeRpcTable.filter(r => r.wsId !== ws._id)
+        ws._user = null
     }
 
     _startRpcGc() {
@@ -98,6 +101,18 @@ class RpcServer extends EventEmitter {
             ws.send(JSON.stringify(responseObject))
         } catch (e) {
             this.emit('error', new Error(`Error while trying to send RPC response ${e}`))
+        }
+    }
+
+    _checkAuth(wsId) {
+        return () => {
+            const ws = this._connections.find(c => c._id === wsId)
+            if (!ws) {
+                this.emit('error', new Error(`Cannot check auth of unknown connection ${wsId}`))
+                return null
+            }
+
+            return ws._user
         }
     }
 
@@ -166,8 +181,60 @@ class RpcServer extends EventEmitter {
         }
     }
 
+    _handleAuthSuccess(rpcId, wsId) {
+        return user => {
+            const ws = this._connections.find(c => c._id === wsId)
+            if (!ws) {
+                this.emit('error', new Error(`Cannot route to unknown connection ${wsId}`))
+                return
+            }
+
+            ws._user = user
+            this._handleRpcResolve(rpcId, wsId)({
+                username: user.username
+            })
+        }
+    }
+
+    _handleAuthFailure(rpcId, wsId) {
+        return error => {
+            const ws = this._connections.find(c => c._id === wsId)
+            if (!ws) {
+                this.emit('error', new Error(`Cannot route to unknown connection ${wsId}`))
+                return
+            }
+
+            ws._user = null
+            this._handleRpcReject(rpcId, wsId)({
+                error
+            })
+        }
+    }
+
+    _handleReservedMethod(ws, request) {
+        const { id, method, params } = request
+        const wsId = ws._id
+
+        // Login
+        if (method === 'rpc.authenticate') {
+            if (typeof this._authStrategy !== 'function') {
+                this.emit('error', new Error('No auth strategy defined'))
+                return
+            }
+
+            const token = params[0]
+
+            this._authStrategy(token, this._handleAuthSuccess(id, wsId),
+                this._handleAuthFailure(id, wsId))
+            return
+        }
+
+        this.emit('error', new Error(`Unhandled reserved method '${method}'`))
+    }
+
     _handleMessage(ws, request) {
         const { id, method, params, jsonrpc } = request
+        const wsId = ws._id
 
         // Validate header
         if (!jsonrpc || jsonrpc !== JSON_RPC_HEADER.jsonrpc) {
@@ -192,6 +259,13 @@ class RpcServer extends EventEmitter {
             return
         }
 
+        // Route the call
+        this._activeRpcTable.push({
+            rpcId: id,
+            wsId: wsId,
+            createdAt: new Date().getTime()
+        })
+
         // Validate method name
         if (!method || typeof method !== 'string') {
             this.emit('error', new Error('Invalid method name.'))
@@ -205,6 +279,12 @@ class RpcServer extends EventEmitter {
                 })
                 ws.send(JSON.stringify(responseMethodNameErr))
             } catch (e) {}
+            return
+        }
+
+        // Check if it's a reserved method (e.g. auth)
+        if (method.match(/^rpc\./i)) {
+            this._handleReservedMethod(ws, request)
             return
         }
 
@@ -225,13 +305,6 @@ class RpcServer extends EventEmitter {
             return
         }
 
-        // Route the call
-        this._activeRpcTable.push({
-            rpcId: id,
-            wsId: ws._id,
-            createdAt: new Date().getTime()
-        })
-
         let methodWithParams
         if (Array.isArray(params)) {
             methodWithParams = methodToInvoke(...params)
@@ -244,7 +317,8 @@ class RpcServer extends EventEmitter {
             return
         }
 
-        methodWithParams(this._handleRpcResolve(id, ws._id), this._handleRpcReject(id, ws._id))
+        methodWithParams(this._handleRpcResolve(id, wsId), this._handleRpcReject(id, wsId),
+            this._checkAuth(wsId))
     }
 
     /**
@@ -263,6 +337,15 @@ class RpcServer extends EventEmitter {
         })
 
         this._methods = Object.assign(this._methods, validatedMethods)
+    }
+
+    registerAuthenticationStrategy(strategy) {
+        if (typeof strategy !== 'function') {
+            this.emit('error', new Error('Strategy must be a function'))
+            return
+        }
+
+        this._authStrategy = strategy
     }
 }
 

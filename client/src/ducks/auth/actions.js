@@ -56,7 +56,7 @@ function requestAuth(username, password) {
     }
 }
 
-function receiveAuthSuccess({ username, token }) {
+export function receiveAuthSuccess(username, token) {
     return {
         type: RECEIVE_AUTHENTICATION,
         payload: {
@@ -74,7 +74,7 @@ export function login(username, password) {
             password
         }, { timeout: API_TIMEOUT })
         .then(res => (
-            dispatch(receiveAuthSuccess(res.data))
+            dispatch(receiveAuthSuccess(res.data.username, res.data.token))
         ))
         .catch(err => (
             dispatch(emitError(err))
