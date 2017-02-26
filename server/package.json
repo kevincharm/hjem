@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tape 'tests/**/*.test.js'",
+    "tap": "npm run test | tap-spec"
   },
   "author": "Kevin Tjiam <kevin@kevincharm.com>",
   "license": "MIT",
@@ -15,6 +16,8 @@
     "uws": "^0.13.0"
   },
   "devDependencies": {
-    "nodemon": "^1.11.0"
+    "nodemon": "^1.11.0",
+    "tap-spec": "^4.1.1",
+    "tape": "^4.6.3"
   }
 }

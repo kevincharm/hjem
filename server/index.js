@@ -1,6 +1,6 @@
 const WebSocketServer = require('uws').Server
 const wss = new WebSocketServer({ port: 3000 })
-const { RpcServer } = require('./RpcServer')
+const { RpcServer } = require('./classes/RpcServer')
 
 const rpcServer = new RpcServer(wss)
 

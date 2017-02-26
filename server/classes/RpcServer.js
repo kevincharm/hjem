@@ -175,19 +175,9 @@ class RpcServer extends EventEmitter {
             return
         }
 
-        // Validate method name
-        if (!method || typeof method !== 'string') {
-            this.emit('error', new Error('Invalid method name.'))
-            this._handleRpcReject(id, ws._id)({
-                code: -32600,
-                message: 'Invalid request'
-            })
-            return
-        }
-
         // Check that an id is present
-        const idIsValid = typeof id !== 'string' || typeof id !== 'number'
-        if (!id || !idIsValid) {
+        const idIsValid = typeof id === 'string' || typeof id === 'number'
+        if (!((id || id === 0) && idIsValid)) {
             this.emit('error', new Error(`Invalid RPC id ${id}`))
             try {
                 const responseIdErr = Object.assign({}, JSON_RPC_HEADER, {
@@ -198,6 +188,22 @@ class RpcServer extends EventEmitter {
                     }
                 })
                 ws.send(JSON.stringify(responseIdErr))
+            } catch (e) {}
+            return
+        }
+
+        // Validate method name
+        if (!method || typeof method !== 'string') {
+            this.emit('error', new Error('Invalid method name.'))
+            try {
+                const responseMethodNameErr = Object.assign({}, JSON_RPC_HEADER, {
+                    id,
+                    error: {
+                        code: -32600,
+                        message: 'Invalid request'
+                    }
+                })
+                ws.send(JSON.stringify(responseMethodNameErr))
             } catch (e) {}
             return
         }
