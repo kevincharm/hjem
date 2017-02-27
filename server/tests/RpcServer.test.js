@@ -200,9 +200,7 @@ test('Accept existing methods with params and resolve correctly', { timeout: 100
 
     rpcServer.registerMethods({
         add(...args) {
-            return (resolve, reject) => {
-                resolve(args.reduce((p, c) => p + c, 0))
-            }
+            return Promise.resolve(args.reduce((p, c) => p + c, 0))
         }
     })
 

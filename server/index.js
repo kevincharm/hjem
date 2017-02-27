@@ -14,18 +14,16 @@ rpcServer.on('error', err => {
 
 rpcServer.registerMethods({
     echo(message) {
-        return (resolve, reject) => {
-            resolve(`${message}`)
-        }
+        return Promise.resolve(`${message}`)
     },
     add(...args) {
-        return (resolve, reject, auth) => {
-            if (auth()) {
+        return new Promise((resolve, reject) => {
+            if (this.auth()) {
                 resolve(args.reduce((p, c) => p + c, 0))
             } else {
                 reject('Not logged in')
             }
-        }
+        })
     }
 })
 
@@ -68,7 +66,7 @@ function generateToken() {
 
 rpcServer.registerMethods({
     register(username, email, password) {
-        return (resolve, reject, auth) => {
+        return new Promise((resolve, reject) => {
             bcrypt.hash(password, 12, (err, hashedPassword) => {
                 if (err) return reject({ error: err })
 
@@ -91,10 +89,10 @@ rpcServer.registerMethods({
                         reject({ error: err })
                     })
             })
-        }
+        })
     },
     login(username, password) {
-        return (resolve, reject, auth) => {
+        return new Promise((resolve, reject) => {
             let userUid
             let token
             knex.select('*')
@@ -125,7 +123,7 @@ rpcServer.registerMethods({
                 .catch(err => {
                     reject(err)
                 })
-        }
+        })
     }
 })
 

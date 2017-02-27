@@ -305,20 +305,23 @@ class RpcServer extends EventEmitter {
             return
         }
 
+        // expose a helper auth() checker
+        const boundMethodToInvoke = methodToInvoke.bind({ auth: this._checkAuth(wsId) })
+
         let methodWithParams
         if (Array.isArray(params)) {
-            methodWithParams = methodToInvoke(...params)
+            methodWithParams = boundMethodToInvoke(...params)
         } else {
-            methodWithParams = methodToInvoke()
+            methodWithParams = boundMethodToInvoke()
         }
 
-        if (typeof methodWithParams !== 'function') {
-            this.emit('error', new Error(`Registered method '${method}' must return a function`))
+        if (!(methodWithParams instanceof Promise)) {
+            this.emit('error', new Error(`Registered method '${method}' must return a Promise`))
             return
         }
 
-        methodWithParams(this._handleRpcResolve(id, wsId), this._handleRpcReject(id, wsId),
-            this._checkAuth(wsId))
+        methodWithParams.then(this._handleRpcResolve(id, wsId))
+                        .catch(this._handleRpcReject(id, wsId))
     }
 
     /**
