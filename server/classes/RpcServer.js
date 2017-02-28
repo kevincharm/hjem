@@ -224,8 +224,8 @@ class RpcServer extends EventEmitter {
 
             const token = params[0]
 
-            this._authStrategy(token, this._handleAuthSuccess(id, wsId),
-                this._handleAuthFailure(id, wsId))
+            this._authStrategy(token).then(this._handleAuthSuccess(id, wsId))
+                                    .catch(this._handleAuthFailure(id, wsId))
             return
         }
 
@@ -344,7 +344,7 @@ class RpcServer extends EventEmitter {
 
     registerAuthenticationStrategy(strategy) {
         if (typeof strategy !== 'function') {
-            this.emit('error', new Error('Strategy must be a function'))
+            this.emit('error', new Error('Strategy must be a function returning a Promise'))
             return
         }
 

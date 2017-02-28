@@ -32,20 +32,22 @@ const uuid = require('uuid')
 const bcrypt = require('bcrypt')
 const knex = require('./knex')
 
-rpcServer.registerAuthenticationStrategy((token, resolve, reject) => {
-    knex.select('*')
-        .from('session_tokens')
-        .where({ token })
-        .innerJoin('users', 'user_uid', 'users.uid')
-        .limit(1)
-        .then(r => {
-            if (!Array.isArray(r) || !r.length) return reject()
+rpcServer.registerAuthenticationStrategy(token => {
+    return new Promise((resolve, reject) => {
+        knex.select('*')
+            .from('session_tokens')
+            .where({ token })
+            .innerJoin('users', 'user_uid', 'users.uid')
+            .limit(1)
+            .then(r => {
+                if (!Array.isArray(r) || !r.length) return reject()
 
-            const user = Object.assign({}, r[0])
-            delete user.hashed_password
-            resolve(user)
-        })
-        .catch(reject)
+                const user = Object.assign({}, r[0])
+                delete user.hashed_password
+                resolve(user)
+            })
+            .catch(reject)
+    })
 })
 
 function bcryptCompare(plainText, hashed) {
