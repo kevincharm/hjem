@@ -315,7 +315,9 @@ class RpcServer extends EventEmitter {
             methodWithParams = boundMethodToInvoke()
         }
 
-        if (!(methodWithParams instanceof Promise)) {
+        if (!methodWithParams ||
+            !(methodWithParams instanceof Promise) ||
+            typeof methodWithParams.then !== 'function') {
             this.emit('error', new Error(`Registered method '${method}' must return a Promise`))
             return
         }
